@@ -2,6 +2,7 @@
 
 namespace NoelDeMartin\LaravelDusk;
 
+use Exception;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +48,7 @@ abstract class Driver
 
             switch ($facade) {
                 case Event::class:
-                    Model::setEventDispatcher($mock);
+//                    Model::setEventDispatcher($mock);
                     break;
             }
         }
@@ -79,8 +80,8 @@ abstract class Driver
 
         switch ($facade) {
             case Event::class:
-                Model::setEventDispatcher($mock);
-                break;
+//                Model::setEventDispatcher($mock);
+            break;
         }
     }
 
@@ -148,7 +149,12 @@ abstract class Driver
      */
     public function serialize(string $facade)
     {
-        return base64_encode(serialize($this->mocks[$facade]));
+        try {
+            $ser = serialize($this->mocks[$facade]);
+        } catch (Exception $exception) {
+            $ser = json_encode($this->mocks[$facade]);
+        }
+        return base64_encode($ser);
     }
 
     /**
@@ -159,7 +165,15 @@ abstract class Driver
      */
     public function unserialize(string $serializedMock)
     {
-        return unserialize(base64_decode($serializedMock));
+        $ser = base64_decode( $serializedMock);
+        if ($this->isjson($ser))
+            return json_decode($ser);
+        return unserialize($ser);
+    }
+
+    private function isJson($string) {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 
     /**
