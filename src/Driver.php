@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use NoelDeMartin\LaravelDusk\Fakes\EventFake;
+use Spatie\ModelStates\Events\StateChanged;
 use Symfony\Component\HttpFoundation\Response;
 use NoelDeMartin\LaravelDusk\Fakes\StorageFake;
 
@@ -73,6 +74,9 @@ abstract class Driver
      */
     public function mock(string $facade, ...$arguments)
     {
+        // May be usefull for some facade
+        $originalDispatcher = $facade::getFacadeRoot();
+
         $mock = $this->createMock($facade, ...$arguments);
         $facade::swap($mock);
         $this->mocks[$facade] = $mock;
