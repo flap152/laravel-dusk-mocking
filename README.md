@@ -1,3 +1,10 @@
+# About this fork:
+Forked this package to allow a few things:
+- NOT fake Eloquen Model Events when usung EventFake: The idea, by convention, is to only use Model Events to "fix" basic stuff on Models, not trigger side effects, that should be done with specific Event Classes.  For example, you could have a user_id and user_name column you want to sync upon save, or to ensure a default value or an important relation is set on save/update when referential integrity is not implemented in the DB. You - usually - want those to still occur when faking Events. But you don't want to trigger an Email notification or a Job to be queued 
+- While we're at it, do not fake spatie/laravel-state package StateChanged Events for the same reasons. Reserv listening to those for "coherence/integrity" and low-level reasons, then dispatch specific Events for side-efects
+- Also, hopefully add more Fakes/Mocks as closure serialization appears to be coming/supported on laravel 9?
+- Then, make those fake / don't fake exceptions configurable, bakcward compatible... and make a PR to the repo. ;-)
+
 # Laravel Dusk Mocking [![Build Status](https://travis-ci.org/NoelDeMartin/laravel-dusk-mocking.svg?branch=master)](https://travis-ci.org/NoelDeMartin/laravel-dusk-mocking) [![Github Actions Status](https://github.com/noeldemartin/laravel-dusk-mocking/workflows/Testing/badge.svg)](https://github.com/noeldemartin/laravel-dusk-mocking/actions)
 
 When running browser tests with Laravel Dusk, [it is not possible](https://github.com/laravel/dusk/issues/152) to mock facades like [it is usually done](https://laravel.com/docs/mocking) for http tests. This package aims to provide that functionality. However, it does so by doing some workarounds. It is recommended to read the [Disclaimer](#disclaimer) (and in particular the [Limitations](#limitations)) before using it.
