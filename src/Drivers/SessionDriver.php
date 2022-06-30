@@ -22,11 +22,12 @@ class SessionDriver extends Driver
      */
     protected function load()
     {
-        $data = Session::get(self::KEY_NAME, '{"mocks":{},"fakes":{}}');
+        $data = Session::get(self::KEY_NAME, json_encode(['mocks' => [],'fakes' => []]));//ray($data);
         $data = json_decode($data, true);
 
-        foreach ($data['mocks'] as $facade => $serializedMock) {
-            $this->mocks[$facade] = $this->unserialize($serializedMock);
+        foreach ($data['mocks'] as $facade => $serializedMock) { //ray($facade);ray($serializedMock);
+            $unserialized = $this->unserialize($serializedMock);
+            if ($unserialized) $this->mocks[$facade] = $unserialized;
         }
 
         $this->fakes = $data['fakes'];
@@ -44,7 +45,8 @@ class SessionDriver extends Driver
         foreach (array_keys($this->mocks) as $facade) {
             $serializedMocks[$facade] = $this->serialize($facade);
         }
-
+        ray($this->mocks);
+//        ray($serializedMocks);
         Session::put(
             static::KEY_NAME,
             json_encode([

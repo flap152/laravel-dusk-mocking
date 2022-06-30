@@ -5,10 +5,15 @@ namespace NoelDeMartin\LaravelDusk;
 use Exception;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\Storage;
 use NoelDeMartin\LaravelDusk\Fakes\EventFake;
+use NoelDeMartin\LaravelDusk\Fakes\QueueFake;
+use Serializable;
 use Symfony\Component\HttpFoundation\Response;
 use NoelDeMartin\LaravelDusk\Fakes\StorageFake;
+
+//use Laravel\SerializableClosure\SerializableClosure;
 
 abstract class Driver
 {
@@ -41,13 +46,27 @@ abstract class Driver
      */
     public function start()
     {
-        $this->load();
-
+        $this->load();//ray($this->mocks);ray($this->fakes);
+        /**
+         * @var Facade $facade
+         * @var  $mock
+         */
         foreach ($this->mocks as $facade => $mock) {
+//            ray($facade);ray(/*json_encode*/( $mock));
+//            if (! is_a($mock, ))
             $facade::swap($mock);
-
+            if (! is_a( $mock,\Illuminate\Contracts\Events\Dispatcher::class)){
+                ray('not a Dispatcher');
+            }
             switch ($facade) {
                 case Event::class:
+                    if (! is_a( $mock,\Illuminate\Contracts\Events\Dispatcher::class)){
+                        var_dump($mock); //$mock = $mock->dispatcher;
+                        ray('not a Dispatcher');
+                    } else {
+//                    $facade::swap($mock);
+//                        Model::setEventDispatcher($mock);
+                    }
 //                    Model::setEventDispatcher($mock);
                     break;
             }
@@ -57,7 +76,7 @@ abstract class Driver
     /**
      * Save facades state.
      *
-     * @param  \Symfony\Component\HttpFoundation\Response   $response
+     * @param \Symfony\Component\HttpFoundation\Response $response
      * @return void
      */
     public function save(Response $response)
@@ -68,8 +87,8 @@ abstract class Driver
     /**
      * Replace facade instance with a mock.
      *
-     * @param  string   $facade
-     * @param  mixed[]  ...$arguments
+     * @param string $facade
+     * @param mixed[] ...$arguments
      * @return void
      */
     public function mock(string $facade, ...$arguments)
@@ -81,6 +100,7 @@ abstract class Driver
         switch ($facade) {
             case Event::class:
 //                Model::setEventDispatcher($mock);
+//                Model::setEventDispatcher($mock);
             break;
         }
     }
@@ -88,8 +108,8 @@ abstract class Driver
     /**
      * Register new facade fake.
      *
-     * @param  string   $facade
-     * @param  string   $fake
+     * @param string $facade
+     * @param string $fake
      * @return void
      */
     public function registerFake(string $facade, string $fake)
@@ -100,7 +120,7 @@ abstract class Driver
     /**
      * Determine if a facade is being mocked.
      *
-     * @param  string   $facade
+     * @param string $facade
      * @return bool
      */
     public function has(string $facade)
@@ -111,7 +131,7 @@ abstract class Driver
     /**
      * Get facade mock.
      *
-     * @param  string   $facade
+     * @param string $facade
      * @return mixed
      */
     public function get(string $facade)
@@ -122,7 +142,7 @@ abstract class Driver
     /**
      * Determine if a facade fake is registered.
      *
-     * @param  string   $facade
+     * @param string $facade
      * @return bool
      */
     public function hasFake(string $facade)
@@ -133,7 +153,7 @@ abstract class Driver
     /**
      * Get registered fake.
      *
-     * @param  string   $facade
+     * @param string $facade
      * @return string | null
      */
     public function getFake(string $facade)
@@ -144,15 +164,18 @@ abstract class Driver
     /**
      * Serialize a facade mock.
      *
-     * @param  string   $facade
+     * @param string $facade
      * @return string
      */
     public function serialize(string $facade)
     {
-        try {
-            $ser = serialize($this->mocks[$facade]);
-        } catch (Exception $exception) {
-            $ser = json_encode($this->mocks[$facade]);
+                try {ray($facade);ray($m = $this->mocks[$facade]);
+            $ser =  serialize($m)/*->serialize()*/;
+            /*$ser = serialize($this->mocks[$facade]);*/ray($ser);
+        } catch (Exception $exception) { ray($exception);
+            //$ser = serialize(null);    
+			$ser = json_encode($this->mocks[$facade]);
+            ray($ser);
         }
         return base64_encode($ser);
     }
@@ -160,31 +183,34 @@ abstract class Driver
     /**
      * Unserialize a facade mock.
      *
-     * @param  string   $serializedMock
+     * @param string $serializedMock
      * @return mixed
      */
     public function unserialize(string $serializedMock)
-    {
-        $ser = base64_decode( $serializedMock);
-        if ($this->isjson($ser))
+    {ray($serializedMock);
+        $ser = base64_decode( $serializedMock);ray($ser);
+        if ($this->isjson($ser)) {ray(json_decode($ser));
             return json_decode($ser);
+        }ray(__LINE__);
         return unserialize($ser);
     }
 
-    private function isJson($string) {
+    private function isJson($string)
+    {
         json_decode($string);
-        return json_last_error() === JSON_ERROR_NONE;
+        return json_last_error() === JSON_ERROR_NONE
+		&& $string != '{}';
     }
 
     /**
      * Create a facade mock.
      *
      * @param $facade   string
-     * @param  mixed[]  ...$arguments
+     * @param mixed[] ...$arguments
      * @return mixed
      */
     protected function createMock(string $facade, ...$arguments)
-    {
+    {   ray("creating $facade");ray($this->fakes);
         if (isset($this->fakes[$facade])) {
             return new $this->fakes[$facade](...$arguments);
         }
@@ -198,6 +224,8 @@ abstract class Driver
                 return $storageFake;
             case Event::class:
                 return new EventFake($facade::getFacadeRoot(), ...$arguments);
+            case Queue::class:
+                return new QueueFake($facade::getFacadeRoot(), ...$arguments);
             default:
                 $facade::fake(...$arguments);
 
@@ -229,7 +257,7 @@ abstract class Driver
     /**
      * Persists data.
      *
-     * @param  \Symfony\Component\HttpFoundation\Response   $response
+     * @param \Symfony\Component\HttpFoundation\Response $response
      * @return void
      */
     abstract protected function persist(Response $response);

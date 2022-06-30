@@ -80,7 +80,7 @@ class Browser extends DuskBrowser
      * Execute a javascript request in the browser (only GET and POST methods supported).
      *
      * @param  string   $method
-     * @param  array    $url
+     * @param  string    $url
      * @param  array    $params
      * @param  bool     $useSession
      * @param  bool     $responseType
