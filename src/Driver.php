@@ -3,15 +3,21 @@
 namespace NoelDeMartin\LaravelDusk;
 
 use Exception;
+use Illuminate\Events\Dispatcher;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use NoelDeMartin\LaravelDusk\Fakes\EventFake;
 use NoelDeMartin\LaravelDusk\Fakes\QueueFake;
 use Serializable;
 use Symfony\Component\HttpFoundation\Response;
 use NoelDeMartin\LaravelDusk\Fakes\StorageFake;
+use function json_last_error;
+use function json_last_error_msg;
 
 //use Laravel\SerializableClosure\SerializableClosure;
 
@@ -46,7 +52,7 @@ abstract class Driver
      */
     public function start()
     {
-        $this->load();//ray($this->mocks);ray($this->fakes);
+        $this->load();// ray($this->mocks);ray($this->fakes);
         /**
          * @var Facade $facade
          * @var  $mock
@@ -55,22 +61,29 @@ abstract class Driver
 //            ray($facade);ray(/*json_encode*/( $mock));
 //            if (! is_a($mock, ))
             $facade::swap($mock);
-            if (! is_a( $mock,\Illuminate\Contracts\Events\Dispatcher::class)){
+            if (!$this->isADispatcher($mock)) {
                 ray('not a Dispatcher');
             }
             switch ($facade) {
                 case Event::class:
-                    if (! is_a( $mock,\Illuminate\Contracts\Events\Dispatcher::class)){
-                        var_dump($mock); //$mock = $mock->dispatcher;
-                        ray('not a Dispatcher');
-                    } else {
-//                    $facade::swap($mock);
-//                        Model::setEventDispatcher($mock);
-                    }
+//                    if (! $this->isADispatcher($mock)){
+//                        var_dump($mock); //$mock = $mock->dispatcher;
+//                        ray('not a Dispatcher');
+//                    } else {
+                    $facade::swap($mock);
+                    Model::setEventDispatcher(new Dispatcher(app()));
+//                    }
 //                    Model::setEventDispatcher($mock);
                     break;
             }
         }
+    }
+
+    public function isADispatcher($mock)
+    {
+        $res = is_a($mock, \Illuminate\Contracts\Events\Dispatcher::class) ||
+            (is_object($mock) && method_exists($mock, 'dispatch'));
+        return $res;
     }
 
     /**
@@ -94,14 +107,21 @@ abstract class Driver
     public function mock(string $facade, ...$arguments)
     {
         $mock = $this->createMock($facade, ...$arguments);
+        $real = Model::getEventDispatcher();
+//        $real = new Dispatcher(app());
+
         $facade::swap($mock);
+//        Model::setEventDispatcher($real);
         $this->mocks[$facade] = $mock;
 
         switch ($facade) {
             case Event::class:
+                if ($real) { // may be null in tests or other situation: robustnenss
+                    Model::setEventDispatcher($real);
+                }
+//                Model::setEventDispatcher(App::make(Dispatcher::class));
 //                Model::setEventDispatcher($mock);
-//                Model::setEventDispatcher($mock);
-            break;
+                break;
         }
     }
 
@@ -169,14 +189,20 @@ abstract class Driver
      */
     public function serialize(string $facade)
     {
-                try {ray($facade);ray($m = $this->mocks[$facade]);
-            $ser =  serialize($m)/*->serialize()*/;
-            /*$ser = serialize($this->mocks[$facade]);*/ray($ser);
-        } catch (Exception $exception) { ray($exception);
-            //$ser = serialize(null);    
-			$ser = json_encode($this->mocks[$facade]);
-            ray($ser);
-        }
+        try {/*ray($facade);ray(*/
+            $m = $this->mocks[$facade]/*)*/
+            ;
+            $ser = serialize($m)/*->serialize()*/
+            ;
+//            $ser =  sserialize($m)/*->serialize()*/;
+//            /*$ser = serialize($this->mocks[$facade]);*/ray($ser);
+        } catch (Exception $exception) {
+            ray($m, $exception);
+            //$ser = serialize(null);
+            $ser = json_encode($this->mocks[$facade], 0, 2);
+            ray(json_last_error(), json_last_error_msg());
+                }
+        ray($ser);
         return base64_encode($ser);
     }
 
@@ -187,19 +213,21 @@ abstract class Driver
      * @return mixed
      */
     public function unserialize(string $serializedMock)
-    {ray($serializedMock);
-        $ser = base64_decode( $serializedMock);ray($ser);
-        if ($this->isjson($ser)) {ray(json_decode($ser));
-            return json_decode($ser);
-        }ray(__LINE__);
-        return unserialize($ser);
+    { //ray($serializedMock);
+//        $ser = base64_decode( $serializedMock);ray($ser);
+//        if ($this->isjson($ser)) {ray(json_decode($ser));
+//            return json_decode($ser);
+//        }ray(__LINE__);
+        $mock = uss($serializedMock);
+        //ray($mock);
+        return $mock; //  unserialize($ser);
     }
 
     private function isJson($string)
     {
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE
-		&& $string != '{}';
+            && $string != '{}';
     }
 
     /**
@@ -210,7 +238,7 @@ abstract class Driver
      * @return mixed
      */
     protected function createMock(string $facade, ...$arguments)
-    {   ray("creating $facade");ray($this->fakes);
+    {   //ray("creating $facade");ray($this->fakes);
         if (isset($this->fakes[$facade])) {
             return new $this->fakes[$facade](...$arguments);
         }
@@ -223,11 +251,18 @@ abstract class Driver
 
                 return $storageFake;
             case Event::class:
+//                 App::make(Dispatcher::class)
                 return new EventFake($facade::getFacadeRoot(), ...$arguments);
             case Queue::class:
                 return new QueueFake($facade::getFacadeRoot(), ...$arguments);
             default:
-                $facade::fake(...$arguments);
+//                Log::debug('facade is not mentiond- case default');
+                ray('facade is not mentioned - case default' . $facade);
+                try {
+                    $facade::fake(...$arguments);
+                } catch (Exception $e) {
+                    $facade::mock(...$arguments);
+                }
 
                 return $facade::getFacadeRoot();
         }

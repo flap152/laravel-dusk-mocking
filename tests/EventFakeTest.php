@@ -29,9 +29,17 @@ class EventFakeTest extends TestCase
     {
         $eventFake = new EventFake($this->dispatcherMock);
         $eventFake->dispatch(new StubEvent);
-
         $eventFake = unserialize(serialize($eventFake));
 
         $eventFake->assertDispatched(StubEvent::class);
+    }
+
+    // add this to your base test case
+
+    protected function getPackageProviders($app)
+    {
+        return [
+            \Spatie\LaravelRay\RayServiceProvider::class,
+        ];
     }
 }

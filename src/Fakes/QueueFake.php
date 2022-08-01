@@ -83,10 +83,10 @@ class QueueFake extends ParentQueueFake
      *
      * @return void
      */
-    public function __wakeup()
-    {
-//        foreach ($this->connections as $key => $connection) {
-//            $this->connections[$connection] = App::make('queue')/*->createLocalDriver(['root' => $root])*/;
-//        }
-    }
+//    public function __wakeup()
+//    {
+////        foreach ($this->connections as $key => $connection) {
+////            $this->connections[$connection] = App::make('queue')/*->createLocalDriver(['root' => $root])*/;
+////        }
+//    }
 }

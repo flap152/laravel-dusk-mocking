@@ -59,7 +59,7 @@ class MockingProxy
      * @return mixed
      */
     protected function getFacadeMock()
-    { ray(__FUNCTION__);
+    {   //ray(__FUNCTION__);
         $serializedMock = $this->browser->executeJavascriptRequest(
             'POST',
             '/_dusk-mocking/serialize',

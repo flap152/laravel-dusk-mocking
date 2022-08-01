@@ -17,7 +17,7 @@ class StartMocking
     public function handle($request, Closure $next)
     {
         if (app('dusk-mocking')) {
-            ray(__FILE__);
+//            ray(__FILE__);
             Mocking::start();
         }
         return $next($request);

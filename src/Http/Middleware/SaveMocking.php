@@ -19,7 +19,7 @@ class SaveMocking
         $response = $next($request);
 
         if (app('dusk-mocking')) {
-            ray(__FILE__);
+//            ray(__FILE__);
             Mocking::save($response);
         }
         return $response;
